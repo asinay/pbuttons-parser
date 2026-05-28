@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pButtons Parser</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #003366;
+      color: #fff;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1 { font-size: 1.3rem; font-weight: 600; }
+    header span { font-size: 0.85rem; opacity: 0.7; }
+
+    main {
+      max-width: 860px;
+      margin: 40px auto;
+      padding: 0 16px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      padding: 32px;
+      margin-bottom: 24px;
+    }
+
+    /* ---- Upload Zone ---- */
+    .upload-zone {
+      border: 2px dashed #aab;
+      border-radius: 8px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: #0055aa;
+      background: #f0f6ff;
+    }
+    .upload-zone input[type=file] { display: none; }
+    .upload-zone .icon { font-size: 3rem; line-height: 1; margin-bottom: 12px; }
+    .upload-zone p { color: #555; margin-top: 6px; font-size: 0.9rem; }
+    .upload-zone .hint { font-size: 0.78rem; color: #999; margin-top: 4px; }
+
+    /* ---- Spinner ---- */
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 3px solid #cce;
+      border-top-color: #0055aa;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---- Sections Panel ---- */
+    #sections-panel { display: none; }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .panel-header h2 { font-size: 1.1rem; }
+    .filename-badge {
+      font-size: 0.78rem;
+      background: #e8edf5;
+      padding: 3px 10px;
+      border-radius: 20px;
+      color: #445;
+    }
+
+    .select-all-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .btn-link {
+      background: none;
+      border: none;
+      color: #0055aa;
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 0;
+      text-decoration: underline;
+    }
+
+    .section-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .section-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid #e0e4ec;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      user-select: none;
+    }
+    .section-item:hover { background: #f7f9ff; border-color: #aac; }
+    .section-item.selected { border-color: #0055aa; background: #f0f6ff; }
+    .section-item.sensitive { border-left: 4px solid #f59e0b; }
+    .section-item.sensitive.selected { border-left: 4px solid #0055aa; }
+
+    .section-checkbox {
+      width: 18px; height: 18px;
+      margin-top: 2px;
+      accent-color: #0055aa;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .section-info { flex: 1; }
+    .section-title { font-weight: 500; font-size: 0.95rem; }
+    .section-warn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+      color: #b45309;
+      margin-top: 3px;
+    }
+    .section-warn .warn-icon { font-size: 0.85rem; }
+    .section-reason { font-size: 0.75rem; color: #777; margin-top: 2px; }
+
+    /* ---- Export Bar ---- */
+    .export-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+    .export-bar input[type=text] {
+      flex: 1;
+      min-width: 180px;
+      border: 1px solid #ccd;
+      border-radius: 6px;
+      padding: 9px 12px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .export-bar input[type=text]:focus { border-color: #0055aa; }
+
+    .btn-primary {
+      background: #0055aa;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 22px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+    .btn-primary:hover { background: #0044cc; }
+    .btn-primary:disabled { background: #99b; cursor: not-allowed; }
+
+    .count-badge {
+      font-size: 0.8rem;
+      color: #555;
+    }
+
+    /* ---- Sensitive Warning Banner ---- */
+    .sensitive-banner {
+      display: none;
+      background: #fffbeb;
+      border: 1px solid #f59e0b;
+      border-radius: 7px;
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      color: #78350f;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    .sensitive-banner b { display: block; margin-bottom: 4px; }
+
+    /* ---- Alerts ---- */
+    #status {
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      display: none;
+      margin-top: 12px;
+    }
+    #status.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    #status.success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>pButtons Parser</h1>
+    <span>InterSystems IRIS Performance Data — Section Extractor</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- Step 1: Upload -->
+  <div class="card" id="upload-card">
+    <div class="upload-zone" id="drop-zone">
+      <input type="file" id="file-input" accept=".html" />
+      <div class="icon">📂</div>
+      <p><strong>Drop your pButtons .html file here</strong><br>or click to browse</p>
+      <p class="hint">Only .html files exported from InterSystems IRIS System Performance are supported.</p>
+    </div>
+    <div id="status"></div>
+  </div>
+
+  <!-- Step 2: Select sections -->
+  <div class="card" id="sections-panel">
+    <div class="panel-header">
+      <h2>Select sections to include</h2>
+      <span class="filename-badge" id="filename-badge"></span>
+    </div>
+
+    <div class="sensitive-banner" id="sensitive-banner">
+      <b>⚠️ Sensitive sections detected</b>
+      Some sections below (marked in amber) may contain confidential information such as
+      license keys, user names, file paths, or machine details. Review them before sharing.
+    </div>
+
+    <div class="select-all-row">
+      <button class="btn-link" onclick="selectAll(true)">Select all</button>
+      <button class="btn-link" onclick="selectAll(false)">Deselect all</button>
+      <button class="btn-link" onclick="selectSafe()">Select non-sensitive only</button>
+    </div>
+
+    <div class="section-list" id="section-list"></div>
+
+    <div class="export-bar">
+      <input type="text" id="output-filename" placeholder="output-filename.html" value="pbuttons_filtered.html" />
+      <span class="count-badge" id="count-badge">0 sections selected</span>
+      <button class="btn-primary" id="export-btn" onclick="exportFile()">Download filtered file</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  let sessionId = null;
+  let allSections = [];
+
+  // ---- Drag & drop wiring ----
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) uploadFile(fileInput.files[0]);
+  });
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
+  });
+
+  // ---- Upload ----
+  async function uploadFile(file) {
+    showStatus('info', `<span class="spinner"></span>Parsing <strong>${file.name}</strong>…`);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await fetch('/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Upload failed');
+      sessionId = data.session_id;
+      allSections = data.sections;
+      renderSections(data.filename, data.sections);
+      showStatus('success', `Parsed ${data.sections.length} sections successfully.`);
+    } catch (err) {
+      showStatus('error', '❌ ' + err.message);
+    }
+  }
+
+  // ---- Render section list ----
+  function renderSections(filename, sections) {
+    document.getElementById('filename-badge').textContent = filename;
+    const list = document.getElementById('section-list');
+    list.innerHTML = '';
+
+    const hasSensitive = sections.some(s => s.sensitive);
+    document.getElementById('sensitive-banner').style.display = hasSensitive ? 'block' : 'none';
+
+    sections.forEach(s => {
+      const item = document.createElement('div');
+      item.className = 'section-item' + (s.sensitive ? ' sensitive' : '') + ' selected';
+      item.dataset.id = s.id;
+      item.innerHTML = `
+        <input type="checkbox" class="section-checkbox" id="chk-${s.id}" checked />
+        <div class="section-info">
+          <div class="section-title">${s.title}</div>
+          ${s.sensitive ? `
+            <div class="section-warn"><span class="warn-icon">⚠️</span>May contain sensitive data — consider excluding</div>
+            <div class="section-reason">${s.sensitive_reason}</div>
+          ` : ''}
+        </div>
+      `;
+      const chk = item.querySelector('input');
+      // clicking the row toggles the checkbox
+      item.addEventListener('click', e => {
+        if (e.target !== chk) chk.checked = !chk.checked;
+        item.classList.toggle('selected', chk.checked);
+        updateCount();
+      });
+      chk.addEventListener('change', () => {
+        item.classList.toggle('selected', chk.checked);
+        updateCount();
+      });
+      list.appendChild(item);
+    });
+
+    document.getElementById('sections-panel').style.display = 'block';
+
+    // Suggest deselecting sensitive sections by default
+    sections.forEach(s => {
+      if (s.sensitive) {
+        const chk = document.getElementById('chk-' + s.id);
+        const item = chk.closest('.section-item');
+        chk.checked = false;
+        item.classList.remove('selected');
+      }
+    });
+    updateCount();
+  }
+
+  function updateCount() {
+    const selected = document.querySelectorAll('.section-item.selected').length;
+    document.getElementById('count-badge').textContent = `${selected} section${selected !== 1 ? 's' : ''} selected`;
+    document.getElementById('export-btn').disabled = selected === 0;
+  }
+
+  function selectAll(val) {
+    document.querySelectorAll('.section-item').forEach(item => {
+      const chk = item.querySelector('input');
+      chk.checked = val;
+      item.classList.toggle('selected', val);
+    });
+    updateCount();
+  }
+
+  function selectSafe() {
+    document.querySelectorAll('.section-item').forEach(item => {
+      const isSensitive = item.classList.contains('sensitive');
+      const chk = item.querySelector('input');
+      chk.checked = !isSensitive;
+      item.classList.toggle('selected', !isSensitive);
+    });
+    updateCount();
+  }
+
+  // ---- Export ----
+  async function exportFile() {
+    const selectedIds = [...document.querySelectorAll('.section-item.selected')]
+      .map(el => el.dataset.id);
+    if (!selectedIds.length) return;
+
+    const outputFilename = document.getElementById('output-filename').value.trim() || 'pbuttons_filtered.html';
+    const btn = document.getElementById('export-btn');
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+
+    try {
+      const res = await fetch('/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, selected_ids: selectedIds, output_filename: outputFilename }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Export failed');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = outputFilename;
+      a.click();
+      URL.revokeObjectURL(url);
+      showStatus('success', `✅ Downloaded <strong>${outputFilename}</strong> with ${selectedIds.length} sections.`);
+    } catch (err) {
+      showStatus('error', '❌ ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Download filtered file';
+    }
+  }
+
+  function showStatus(type, html) {
+    const el = document.getElementById('status');
+    el.innerHTML = html;
+    el.className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+    el.style.display = 'block';
+  }
+</script>
+</body>
+</html>

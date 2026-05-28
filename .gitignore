@@ -1,0 +1,13 @@
+# pButtons data files - may contain sensitive system information
+/*.html
+
+# Virtual environment
+venv/
+
+# Generated output files
+uploads/
+outputs/
+
+# Python cache
+__pycache__/
+*.pyc
