@@ -71,9 +71,13 @@ def parse_sections(html: str) -> tuple[str, list[Section]]:
     )
 
     # Simpler approach: split on the hr+section pattern
-    # Find all section anchors with their positions
+    # Find all section anchors with their positions.
+    # Handles three hr-delimited heading variants:
+    #   IRIS:  <hr>\n<b><font...>          (no wrapper tag)
+    #   Caché: <hr><br>\n<b><font...>      (br wrapper)
+    #   Caché: <hr>\n<p> <b><font...></p>  (p wrapper, used for Profile)
     anchor_pattern = re.compile(
-        r'<hr size="4" noshade>\s*<b><font[^>]*>'
+        r'<hr size="4" noshade>\s*(?:<br>|<p>)?\s*<b><font[^>]*>'
         r'<div id=["\']?([^"\'>\s]+)["\']?></div>'
         r'([^<]+)</font></b>',
         re.IGNORECASE
@@ -99,9 +103,15 @@ def parse_sections(html: str) -> tuple[str, list[Section]]:
 
     sections: list[Section] = []
 
+    # IDs already handled by anchor_pattern (e.g. Profile in Caché format which
+    # is preceded by <hr> so it appears in both patterns — skip the duplicate)
+    anchor_ids = {m.group(1) for m in matches}
+
     # Parse Configuration / Profile (pre-section area)
     for m in config_pattern.finditer(html[:header_end + 5000]):
         section_id = m.group(2)
+        if section_id in anchor_ids:
+            continue
         title = m.group(3).strip()
         # grab pre content
         pre_match = re.search(r'<pre>(.*?)</pre>', m.group(0), re.DOTALL)

@@ -349,8 +349,7 @@ async def analyze(section_text: str) -> str:
     # High absolute TCP count
     if avg_tcp > 100:
         flags.append(_flag('info',
-            f'<b>{avg_tcp:.0f} average TCP client connections.</b> '
-            f'High concurrency — compare with the faster system to understand relative load.'))
+            f'<b>{avg_tcp:.0f} average TCP client connections</b> — high concurrency load.'))
 
     # Persistent high-delta-cpu processes (across ALL snapshot pairs)
     if delta_df is not None and not delta_df.empty:

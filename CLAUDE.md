@@ -82,11 +82,11 @@ When adding a new section, update both the title-keyed and ID-keyed dicts as app
 | mount | mount | — | — | — | |
 | df -m | df-m | — | — | — | |
 | ifconfig | ifconfig | — | — | — | |
-| sysctl -a | sysctl-a | — | — | — | |
+| sysctl -a | sysctl-a | — | ✓ | — | |
 | ps | ps | — | — | — | |
 | vmstat | vmstat | — | ✓ | ✓ | MM/DD/YY HH:MM:SS timestamp; header row has same timestamp format as data rows — skip rows where first value is non-numeric |
 | sar -u | sar-u | — | — | ✓ | AM/PM timestamps on some locales |
-| free | free | — | — | — | |
+| free | free | — | ✓ | — | |
 | iostat | iostat | — | ✓ | ✓ | AM/PM timestamps on some locales |
 | sar -d | sar-d | — | ✓ | ✓ | AM/PM timestamps on some locales |
 
@@ -135,6 +135,8 @@ Current analyzers:
 | sar-u | sar_u.py | Stacked area CPU chart (user/sys/iowait/steal + idle dotted); stat cards from Average: line; insights for saturation/steal/iowait. Falls back to fixed column order when header line absent |
 | vmstat | vmstat.py | Run queue + blocked, swap I/O, CPU breakdown, block I/O charts; stat cards; insights. Skips header row by checking first value is numeric |
 | irisstat-D | irisstat_d.py | Lock contention summary table (sortable) + per-second rates table (sortable); insights flagging Bseize>0 on Global/LockHTAB/LockLHB/TransCB; block collision flags. Handles Linux (4-col) and Windows (6-col) column variants |
+| free | free.py | RAM usage chart (used/buffers/cached), adjusted free RAM trend, swap used trend; stat cards; insights on low adjfree % and swap usage. Parses CSV header dynamically — columns mapped by name, tolerates missing trailing swap columns |
+| sysctl-a | sysctl.py | Compliance table (current vs. recommended) for IRIS-relevant kernel parameters; red/amber/green status per row; insights for critical misconfigs (swappiness, NUMA balancing, shmmax, semaphores, huge pages, file-max, TCP backlog) |
 
 ### Shared UI patterns
 

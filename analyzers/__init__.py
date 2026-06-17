@@ -15,6 +15,8 @@ from .vmstat import analyze as analyze_vmstat
 from .irisstat_d import analyze as analyze_irisstat_d
 from .perfmon import analyze as analyze_perfmon
 from .cpf import analyze as analyze_cpf
+from .free import analyze as analyze_free
+from .sysctl import analyze as analyze_sysctl
 
 SECTION_ANALYZERS = {
     "Windowsinfo": analyze_windows_info,
@@ -29,4 +31,6 @@ SECTION_ANALYZERS = {
     "irisstat-D": analyze_irisstat_d,
     "perfmon": analyze_perfmon,
     "CPFfile": analyze_cpf,
+    "free": analyze_free,
+    "sysctl-a": analyze_sysctl,
 }
