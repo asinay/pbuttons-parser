@@ -140,6 +140,59 @@ def _mgstat_insights(df: pd.DataFrame) -> str:
                 f'<b>High journal write rate</b>: avg {avg:,.0f}/s, peak {pk:,.0f}/s — '
                 f'heavy transactional workload. Ensure journal disk I/O is not a bottleneck.'))
 
+    # Global resource NSeizes (expensive OS context switches)
+    if has('pGblNsz'):
+        avg_nsz = df['pGblNsz'].mean()
+        pk_nsz  = df['pGblNsz'].max()
+        if avg_nsz > 5:
+            flags.append(_flag('red',
+                f'<b>High global NSeize rate</b>: avg {avg_nsz:.1f}%, peak {pk_nsz:.1f}% — '
+                f'processes are hibernating waiting for the global resource. NSeizes incur kernel '
+                f'context-switch overhead. Correlate with high Glorefs and CPU %system.'))
+        elif avg_nsz > 1:
+            flags.append(_flag('amber',
+                f'<b>Elevated global NSeizes</b>: avg {avg_nsz:.1f}% — '
+                f'some lock contention on the global resource. Monitor for increases under load.'))
+
+    # Global resource ASeizes (spin-wait, cheaper but burns CPU user time)
+    if has('pGblAsz'):
+        avg_asz = df['pGblAsz'].mean()
+        if avg_asz > 10:
+            flags.append(_flag('amber',
+                f'<b>Elevated global ASeizes</b>: avg {avg_asz:.1f}% — '
+                f'processes are spin-waiting on the global resource (user CPU overhead). '
+                f'Normal on busy multi-CPU systems but high values indicate lock pressure.'))
+
+    # Write Daemon phase — sustained non-zero means WD is always active
+    if has('WDphase'):
+        nonzero_pct = (df['WDphase'] > 0).mean() * 100
+        phase_8_pct = (df['WDphase'] == 8).mean() * 100
+        if phase_8_pct > 80:
+            flags.append(_flag('amber',
+                f'<b>Write Daemon continuously updating databases</b>: phase 8 (DB update) '
+                f'observed {phase_8_pct:.0f}% of the time — write throughput is at its limit. '
+                f'Check disk write latency with sar -d / iostat.'))
+        elif nonzero_pct > 95:
+            flags.append(_flag('info',
+                f'<b>Write Daemon rarely idle</b>: active {nonzero_pct:.0f}% of samples — '
+                f'system has a sustained write workload.'))
+
+    # Routine cache misses / routine loads-saves
+    if has('RouCMs'):
+        avg_rcm = df['RouCMs'].mean()
+        if avg_rcm > 50:
+            flags.append(_flag('amber',
+                f'<b>Routine cache misses elevated</b>: avg {avg_rcm:.0f}/s — '
+                f'IRIS is fetching routines from disk frequently. '
+                f'Consider increasing routine buffer allocation.'))
+
+    if has('RouLaS'):
+        avg_rls = df['RouLaS'].mean()
+        if avg_rls > 20:
+            flags.append(_flag('amber',
+                f'<b>High routine loads/saves</b>: avg {avg_rls:.0f}/s — '
+                f'routine buffer pressure. Increase routine buffers to reduce disk activity.'))
+
     # Remote global refs (ECP traffic)
     if has('RemGrefs') and has('Glorefs'):
         pct = (df['RemGrefs'].sum() / df['Glorefs'].sum() * 100) if df['Glorefs'].sum() > 0 else 0
@@ -259,19 +312,22 @@ async def analyze(section_text: str) -> str:
                 f'<span style="font-size:0.7rem;font-weight:400;color:#888;margin-left:3px">{unit}</span></div></div>')
 
     n = len(df)
-    glorefs_avg = int(df['Glorefs'].mean()) if has('Glorefs') else 'N/A'
-    phyrds_avg  = int(df['PhyRds'].mean())  if has('PhyRds')  else 'N/A'
-    phywrs_avg  = int(df['PhyWrs'].mean())  if has('PhyWrs')  else 'N/A'
-    jrn_avg     = int(df['Jrnwrts'].mean()) if has('Jrnwrts') else 'N/A'
+    glorefs_avg = int(df['Glorefs'].mean()) if has('Glorefs') else None
+    phyrds_avg  = int(df['PhyRds'].mean())  if has('PhyRds')  else None
+    phywrs_avg  = int(df['PhyWrs'].mean())  if has('PhyWrs')  else None
+    jrn_avg     = int(df['Jrnwrts'].mean()) if has('Jrnwrts') else None
+    nsz_avg     = df['pGblNsz'].mean()      if has('pGblNsz') else None
+    roucm_avg   = df['RouCMs'].mean()       if has('RouCMs')  else None
 
-    stats_html = (
-        _stat('Samples', f'{n:,}') +
-        _stat('Duration', duration_str) +
-        _stat('Glorefs avg', f'{glorefs_avg:,}' if isinstance(glorefs_avg, int) else glorefs_avg, '/s') +
-        _stat('PhyRds avg', f'{phyrds_avg:,}'  if isinstance(phyrds_avg, int)  else phyrds_avg,  '/s') +
-        _stat('PhyWrs avg', f'{phywrs_avg:,}'  if isinstance(phywrs_avg, int)  else phywrs_avg,  '/s') +
-        _stat('Jrnwrts avg', f'{jrn_avg:,}'    if isinstance(jrn_avg, int)     else jrn_avg,     '/s')
-    )
+    stat_items = [_stat('Samples', f'{n:,}'), _stat('Duration', duration_str)]
+    if glorefs_avg is not None: stat_items.append(_stat('Glorefs avg', f'{glorefs_avg:,}', '/s'))
+    if phyrds_avg  is not None: stat_items.append(_stat('PhyRds avg',  f'{phyrds_avg:,}',  '/s'))
+    if phywrs_avg  is not None: stat_items.append(_stat('PhyWrs avg',  f'{phywrs_avg:,}',  '/s'))
+    if jrn_avg     is not None: stat_items.append(_stat('Jrnwrts avg', f'{jrn_avg:,}',     '/s'))
+    if nsz_avg     is not None: stat_items.append(_stat('GblNSeize avg', f'{nsz_avg:.1f}', '%'))
+    if roucm_avg   is not None: stat_items.append(_stat('RouCacheMiss avg', f'{roucm_avg:.0f}', '/s'))
+
+    stats_html = ''.join(stat_items)
 
     insights_html = _mgstat_insights(df)
 

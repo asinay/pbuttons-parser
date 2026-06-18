@@ -12,7 +12,30 @@ A web tool for extracting specific sections from InterSystems IRIS pButtons HTML
 - Excluded sections keep their header and nav anchor — replaced with a clearly marked placeholder so the file remains well-formed and shareable
 - Download the filtered file with only the sections you chose
 
-## Setup
+## Running with Docker (recommended)
+
+Requires [Docker](https://docs.docker.com/get-docker/).
+
+```bash
+docker run -p 8000:8000 ghcr.io/asinay/pbuttons-parser
+```
+
+Or build and run locally:
+
+```bash
+docker build -t pbuttons-parser .
+docker run -p 8000:8000 pbuttons-parser
+```
+
+Using Docker Compose:
+
+```bash
+docker compose up
+```
+
+Open http://localhost:8000 in your browser.
+
+## Setup (without Docker)
 
 Requires Python 3.9+.
 
@@ -22,10 +45,8 @@ python -m venv venv
 # source venv/bin/activate && pip install -r requirements.txt  # macOS/Linux
 ```
 
-## Running
-
 ```bash
-./venv/Scripts/uvicorn app:app --host 127.0.0.1 --port 8000 --reload
+./venv/Scripts/uvicorn app:app --host 127.0.0.1 --port 8000
 ```
 
 Open http://127.0.0.1:8000 in your browser.

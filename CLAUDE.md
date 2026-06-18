@@ -78,7 +78,7 @@ When adding a new section, update both the title-keyed and ID-keyed dicts as app
 | Linux info | Linuxinfo | — | — | — | |
 | cpu | cpu | — | ✓ | — | |
 | ipcs | ipcs | — | — | — | |
-| lsblk | lsblk | — | — | — | |
+| fdisk -l | fdisk-l | — | — | — | root access only; partition tables for all block devices |
 | mount | mount | — | — | — | |
 | df -m | df-m | — | — | — | |
 | ifconfig | ifconfig | — | — | — | |
@@ -127,7 +127,7 @@ Current analyzers:
 |---|---|---|
 | Windowsinfo | windows_info.py | OS/hardware summary cards |
 | tasklist | tasklist.py | Top processes by memory |
-| mgstat | mgstat.py | 4-row × 2-col chart grid: Glorefs, PhyRds/Wrs, Jrnwrts+WDQ, Rourefs, GblSz, BytSnt/Rcd, Gloupds, Jrnwrts (dedicated); stat cards; insights |
+| mgstat | mgstat.py | 4-row × 2-col chart grid: Glorefs, PhyRds/Wrs, Jrnwrts+WDQ, Rourefs, GblSz, BytSnt/Rcd, Gloupds, Jrnwrts (dedicated); stat cards; insights including NSeize/ASeize contention, WD phase saturation, routine cache misses |
 | iostat | iostat.py | %util, CPU iowait, IOPS, throughput, latency charts; insights |
 | cpu | cpu.py | CPU topology summary |
 | %SS | ss.py | Process type breakdown, TCP trend, top-CPU/Glob tables, processes-per-namespace table, top-5-routines-by-concurrent-count table; insights |
@@ -148,7 +148,11 @@ Charts use Plotly (loaded from CDN in the output HTML). Call `fig.to_html(full_h
 
 ### mgstat column names (normalised after CSV parse)
 
-Key columns: `Glorefs`, `Gloupds`, `PhyRds`, `PhyWrs`, `Jrnwrts`, `WDQsz`, `Rourefs`, `RemGrefs`, `RemRrefs`, `GblSz`, `BDBSz`, `BytSnt`, `BytRcd`, `Rdratio`.
+Key columns: `Glorefs`, `Gloupds`, `PhyRds`, `PhyWrs`, `Jrnwrts`, `WDQsz`, `WDphase`, `Wijwri`, `WDtmpq`, `Rourefs`, `RouLaS`, `RouCMs`, `RemGrefs`, `RemRrefs`, `GblSz`, `pGblNsz`, `pGblAsz`, `RouSz`, `pRouAsz`, `BDBSz`, `BytSnt`, `BytRcd`, `Rdratio`, `PPGrefs`, `PPGupds`.
+
+- `pGblNsz` / `pGblAsz` — % of NSeizes / ASeizes on global resource. NSeizes = process hibernated (expensive OS context switch, burns %system). ASeizes = spin-waited and got resource (cheaper, burns %user). High NSeize % is the more serious signal.
+- `WDphase` — write daemon phase: 0=idle, 5=WIJ write, 7=commit, 8=DB update. Sustained phase 8 means writes are maxing out the WD cycle.
+- `RouLaS` / `RouCMs` — routine loads/saves and cache misses. High values indicate routine buffer pressure; increase routine buffer allocation.
 
 ### %SS snapshot format
 

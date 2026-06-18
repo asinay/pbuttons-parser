@@ -1,0 +1,17 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+uploads/
+outputs/
+dev-logs/
+tests/
+docs/
+*.html
+*.pdf
+*.log
+*.mgst
+.claude/
+.git/
+generate_demo.py
+restart.bat

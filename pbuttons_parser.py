@@ -27,7 +27,7 @@ SECTION_DESCRIPTIONS: dict[str, str] = {
     "Linux info":    "OS version, hostname, kernel version, and hardware summary.",
     "cpu":           "CPU topology, core count, clock speeds, and processor capabilities.",
     "ipcs":          "IPC shared memory segments — useful for verifying IRIS shared memory allocation.",
-    "lsblk":         "Block device tree — disks, partitions, LUNs, and their sizes.",
+    "fdisk-l":       "Partition tables for all block devices — disks, LUNs, and their sizes.",
     "mount":         "Mounted filesystems with options — check for noatime and barrier settings.",
     "df -m":         "Disk space usage by filesystem — spot full or near-full volumes.",
     "ifconfig":      "Network interface configuration — IP addresses, MTU, and interface flags.",
