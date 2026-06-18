@@ -17,14 +17,20 @@ A web tool for extracting specific sections from InterSystems IRIS pButtons HTML
 Requires [Docker](https://docs.docker.com/get-docker/).
 
 ```bash
-docker run -p 8000:8000 ghcr.io/asinay/pbuttons-parser
+docker run -p 8765:8765 --name pbuttons-parser ghcr.io/asinay/pbuttons-parser
+```
+
+If port 8765 is already in use, pick any free port (e.g. 8080):
+
+```bash
+docker run -p 8080:8765 --name pbuttons-parser ghcr.io/asinay/pbuttons-parser
 ```
 
 Or build and run locally:
 
 ```bash
 docker build -t pbuttons-parser .
-docker run -p 8000:8000 pbuttons-parser
+docker run -p 8765:8765 --name pbuttons-parser pbuttons-parser
 ```
 
 Using Docker Compose:

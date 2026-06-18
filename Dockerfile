@@ -14,6 +14,6 @@ COPY static/ ./static/
 # Create runtime directories
 RUN mkdir -p uploads outputs
 
-EXPOSE 8000
+EXPOSE 8765
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8765"]

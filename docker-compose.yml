@@ -1,6 +1,7 @@
 services:
   pbuttons-parser:
     build: .
+    container_name: pbuttons-parser
     ports:
-      - "8000:8000"
+      - "8765:8765"
     restart: unless-stopped
